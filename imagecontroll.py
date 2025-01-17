@@ -68,6 +68,37 @@ def get_image(image_id):
     try:
         connection = get_mysql_connection()
         with connection.cursor() as cursor:
+            # road_number, risk, report_text 추가 조회
+            query = "SELECT image_data, road_number, risk, report_text FROM image WHERE id = %s"
+            cursor.execute(query, (image_id,))
+            result = cursor.fetchone()
+
+            if not result:
+                return jsonify({"error": "Image not found"}), 404
+
+            # 응답 데이터 구성
+            image_data = result['image_data']  # 바이너리 이미지 데이터
+            road_number = result['road_number']
+            risk = result['risk']
+            report_text = result['report_text']
+
+            # 이미지 바이너리 데이터를 스트림으로 반환
+            return jsonify({
+                "road_number": road_number,
+                "risk": risk,
+                "report_text": report_text,
+                "image_url": f"/images/{image_id}/data"
+            }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 이미지 데이터만 반환 (추가 엔드포인트)
+@image_routes.route('/images/<int:image_id>/data', methods=['GET'])
+def get_image_data(image_id):
+    try:
+        connection = get_mysql_connection()
+        with connection.cursor() as cursor:
             query = "SELECT image_data FROM image WHERE id = %s"
             cursor.execute(query, (image_id,))
             result = cursor.fetchone()
@@ -75,13 +106,12 @@ def get_image(image_id):
             if not result:
                 return jsonify({"error": "Image not found"}), 404
 
-            # 이미지 데이터를 반환 (Base64 인코딩 또는 바이너리 스트림으로 전송)
             image_data = result['image_data']
 
-            # 바이너리 데이터를 스트림으로 변환
+            # 바이너리 데이터를 스트림으로 반환
             return send_file(
                 io.BytesIO(image_data),
-                mimetype='image/jpeg',  # JPEG 형식
+                mimetype='image/jpeg',
                 as_attachment=False,
                 download_name=f'image_{image_id}.jpg'
             )
