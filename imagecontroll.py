@@ -15,26 +15,43 @@ def get_mysql_connection():
     )
 
 # 이미지 업로드 API
+# 이미지 업로드 API
 @image_routes.route('/upload', methods=['POST'])
 def upload_image():
-    if 'image' not in request.files or 'road_number' not in request.form or 'risk' not in request.form:
-        return jsonify({"error": "Missing required fields"}), 400
+    if 'image' not in request.files:
+        return jsonify({"error": "Missing image file"}), 400
 
+    # 파일 가져오기
     file = request.files['image']
-    road_number = request.form.get('road_number')
-    risk = request.form.get('risk')
-
-    if file.filename == '' or not road_number.isdigit() or not risk.isdigit():
-        return jsonify({"error": "Invalid input"}), 400
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
 
     try:
+        # JSON 데이터 가져오기
+        road_number = request.form.get('road_number')
+        risk = request.form.get('risk')  # risk 값은 선택적으로 처리
+
+        # 입력값 검증
+        if not road_number:
+            return jsonify({"error": "Missing required JSON fields"}), 400
+
+        if not road_number.isdigit():
+            return jsonify({"error": "Invalid input"}), 400
+
+        # 이미지 데이터를 읽기
         image_data = file.read()
 
         # MySQL에 데이터 삽입
         connection = get_mysql_connection()
         with connection.cursor() as cursor:
-            query = "INSERT INTO image (image_data, road_number, risk) VALUES (%s, %s, %s)"
-            cursor.execute(query, (image_data, int(road_number), int(risk)))
+            # risk 값이 없으면 NULL로 처리
+            if not risk:
+                query = "INSERT INTO image (image_data, road_number, risk) VALUES (%s, %s, NULL)"
+                cursor.execute(query, (image_data, int(road_number)))
+            else:
+                query = "INSERT INTO image (image_data, road_number, risk) VALUES (%s, %s, %s)"
+                cursor.execute(query, (image_data, int(road_number), int(risk)))
+
             connection.commit()
 
         return jsonify({"message": "Image uploaded successfully"}), 201
