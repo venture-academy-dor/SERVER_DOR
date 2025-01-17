@@ -14,6 +14,9 @@ def load_client():
     load_dotenv()
     return os.getenv("OPENAI_API_KEY")
 
+# Flask 앱 생성
+app = Flask(__name__)
+
 # Blueprint 등록
 app.register_blueprint(image_routes)
 
