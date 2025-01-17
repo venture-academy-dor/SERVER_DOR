@@ -1,7 +1,11 @@
 from flask import Flask, request, jsonify
 from imageAnalysis import encode_image, analyze_image, parse_response
+from imagecontroll import image_routes  # imagecontroll에서 Blueprint 가져오기
 
 app = Flask(__name__)
+
+# Blueprint 등록
+app.register_blueprint(image_routes)
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
