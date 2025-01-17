@@ -4,13 +4,19 @@ import requests
 from PIL import Image
 import io
 import base64
+import os
+from dotenv import load_dotenv
+
+def load_client():
+    # Load the OpenAI API key from the environment
+    load_dotenv()
+    return os.getenv("OPENAI_API_KEY")
 
 # Flask 앱 초기화
 app = Flask(__name__)
 
 # OpenAI API 키 설정
-api_key = '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'
-
+api_key = load_client()
 
 # Function to encode the image
 def encode_image(image_path):
@@ -20,6 +26,8 @@ def encode_image(image_path):
 
 # Path to your image
 image_path = "ice.jpeg"
+# image_path = "safe.jpeg"
+# image_path = "safe2.jpg"
 
 # Getting the base64 string
 base64_image = encode_image(image_path)
@@ -42,7 +50,7 @@ payload = {
                 {
                     "type": "text",
                     # "text": "What’s in this image?"
-                    "text": "이 그림을 한글로 설명하고, 위험도 정도를 1~100으로 알려주고 그 이유를 설명해줘. 결과를 JSON 형식으로 제공해줘. JSON의 key 값은 'description', 'risk_level', 'reasons'로 해줘."
+                    "text": "이 그림을 한글로 설명하고, 미끄러움 정도를 기반으로 위험도 정도를 1~100으로 알려주고 그 이유를 설명해줘. 결과를 JSON 형식으로 제공해줘. JSON의 key 값은 'description', 'risk_level', 'reasons'로 해줘."
                 },
                 {
                     "type": "image_url",
