@@ -1,16 +1,21 @@
 from flask import Blueprint, request, jsonify, send_file
 import pymysql
 import io
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Blueprint 생성
 image_routes = Blueprint('image_routes', __name__)
 
 # MySQL 연결 함수
 def get_mysql_connection():
     return pymysql.connect(
-        host='localhost',
-        user='root',
-        password='gksl1004**',
-        database='dor_workshop',
+        host=os.getenv('DB_HOST'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        database=os.getenv('DB_NAME'),
         cursorclass=pymysql.cursors.DictCursor
     )
 
