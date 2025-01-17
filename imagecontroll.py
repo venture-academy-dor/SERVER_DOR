@@ -15,7 +15,6 @@ def get_mysql_connection():
     )
 
 # 이미지 업로드 API
-# 이미지 업로드 API
 @image_routes.route('/upload', methods=['POST'])
 def upload_image():
     if 'image' not in request.files:
@@ -29,9 +28,10 @@ def upload_image():
     try:
         # JSON 데이터 가져오기
         road_number = request.form.get('road_number')
-        risk = request.form.get('risk')  # risk 값은 선택적으로 처리
+        risk = request.form.get('risk')  # risk 값은 선택
+        report_text = request.form.get('report_text')  # report_text 값은 선택
 
-        # 입력값 검증
+        # 필수 입력값 검증
         if not road_number:
             return jsonify({"error": "Missing required JSON fields"}), 400
 
@@ -44,14 +44,17 @@ def upload_image():
         # MySQL에 데이터 삽입
         connection = get_mysql_connection()
         with connection.cursor() as cursor:
-            # risk 값이 없으면 NULL로 처리
-            if not risk:
-                query = "INSERT INTO image (image_data, road_number, risk) VALUES (%s, %s, NULL)"
-                cursor.execute(query, (image_data, int(road_number)))
-            else:
-                query = "INSERT INTO image (image_data, road_number, risk) VALUES (%s, %s, %s)"
-                cursor.execute(query, (image_data, int(road_number), int(risk)))
-
+            # risk와 report_text 처리
+            query = """
+                INSERT INTO image (image_data, road_number, risk, report_text)
+                VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(query, (
+                image_data,
+                int(road_number),
+                int(risk) if risk else None,  # risk 값이 없으면 NULL
+                report_text if report_text else None  # report_text 값이 없으면 NULL
+            ))
             connection.commit()
 
         return jsonify({"message": "Image uploaded successfully"}), 201
