@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, send_file
 import pymysql
 import io
+
 # Blueprint 생성
 image_routes = Blueprint('image_routes', __name__)
 
@@ -27,16 +28,8 @@ def upload_image():
 
     try:
         # JSON 데이터 가져오기
-        road_number = request.form.get('road_number')
         risk = request.form.get('risk')  # risk 값은 선택
         report_text = request.form.get('report_text')  # report_text 값은 선택
-
-        # 필수 입력값 검증
-        if not road_number:
-            return jsonify({"error": "Missing required JSON fields"}), 400
-
-        if not road_number.isdigit():
-            return jsonify({"error": "Invalid input"}), 400
 
         # 이미지 데이터를 읽기
         image_data = file.read()
@@ -46,12 +39,11 @@ def upload_image():
         with connection.cursor() as cursor:
             # risk와 report_text 처리
             query = """
-                INSERT INTO image (image_data, road_number, risk, report_text)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO image (image_data, risk, report_text)
+                VALUES (%s, %s, %s)
             """
             cursor.execute(query, (
                 image_data,
-                int(road_number),
                 int(risk) if risk else None,  # risk 값이 없으면 NULL
                 report_text if report_text else None  # report_text 값이 없으면 NULL
             ))
@@ -60,6 +52,7 @@ def upload_image():
         return jsonify({"message": "Image uploaded successfully"}), 201
 
     except Exception as e:
+        print(e)
         return jsonify({"error": str(e)}), 500
 
 # 이미지 조회 API (ID 기반)
@@ -68,8 +61,8 @@ def get_image(image_id):
     try:
         connection = get_mysql_connection()
         with connection.cursor() as cursor:
-            # road_number, risk, report_text 추가 조회
-            query = "SELECT image_data, road_number, risk, report_text FROM image WHERE id = %s"
+            # risk, report_text 추가 조회
+            query = "SELECT image_data, risk, report_text FROM image WHERE id = %s"
             cursor.execute(query, (image_id,))
             result = cursor.fetchone()
 
@@ -78,13 +71,11 @@ def get_image(image_id):
 
             # 응답 데이터 구성
             image_data = result['image_data']  # 바이너리 이미지 데이터
-            road_number = result['road_number']
             risk = result['risk']
             report_text = result['report_text']
 
-            # 이미지 바이너리 데이터를 스트림으로 반환
+            # JSON 응답
             return jsonify({
-                "road_number": road_number,
                 "risk": risk,
                 "report_text": report_text,
                 "image_url": f"/images/{image_id}/data"
