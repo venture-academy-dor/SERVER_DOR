@@ -3,6 +3,7 @@ import pymysql
 import io
 import os
 from dotenv import load_dotenv
+from imageAnalysis import analyze
 
 load_dotenv()
 
@@ -31,12 +32,20 @@ def upload_image():
         return jsonify({"error": "No selected file"}), 400
 
     try:
-        # JSON 데이터 가져오기
-        risk = request.form.get('risk')  # risk 값은 선택
-        report_text = request.form.get('report_text')  # report_text 값은 선택
+        # 이미지 위험도를 OPENAI API로 분석
+        risk = analyze(file)
+
+        # 파일을 읽기 위해 포인터를 처음으로 이동
+        file.seek(0)
 
         # 이미지 데이터를 읽기
         image_data = file.read()
+
+        if image_data is None:
+            return jsonify({"error": "Invalid image file"}), 400
+
+        # JSON 데이터 가져오기
+        report_text = request.form.get('report_text')  # report_text 값은 선택
 
         # MySQL에 데이터 삽입
         connection = get_mysql_connection()
@@ -48,7 +57,7 @@ def upload_image():
             """
             cursor.execute(query, (
                 image_data,
-                int(risk) if risk else None,  # risk 값이 없으면 NULL
+                risk if risk else 0,  # risk 값이 없으면 NULL
                 report_text if report_text else None  # report_text 값이 없으면 NULL
             ))
             connection.commit()

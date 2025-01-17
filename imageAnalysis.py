@@ -26,7 +26,7 @@ def analyze_image(base64_image):
                 "content": [
                     {
                         "type": "text",
-                        "text": "이 그림을 한글로 설명하고, 미끄러움 정도를 기반으로 위험도 정도를 1~100으로 알려주고 그 이유를 설명해줘. 결과를 JSON 형식으로 제공해줘. JSON의 key 값은 'description', 'risk_level', 'reasons'로 해줘.",
+                        "text": "이 그림을 한글로 설명하고, 미끄러움 정도를 기반으로 위험도 정도를 1~100으로 알려주고 그 이유를 설명해줘. 결과를 JSON 형식으로 제공해줘. JSON의 key 값은 'description', 'risk_score', 'reasons'로 해줘.",
                     },
                     {
                         "type": "image_url",
@@ -59,3 +59,39 @@ def parse_response(api_response):
         return json.loads(cleaned_json)  # Safely parse JSON string
     else:
         raise ValueError("Invalid response format from OpenAI API")
+
+# Function to get risk level from risk score
+def get_level_from_risk_score(risk_score):
+    if risk_score >= 75:
+        level = 3
+    elif risk_score >= 50:
+        level = 2
+    elif risk_score >= 25:
+        level = 1
+    else:
+        level = 0
+    return level
+
+# Function to analyze image
+def analyze(file):
+    try:
+        # Get the image file from the request
+        image_file = file
+
+        # Encode the image as base64
+        base64_image = encode_image(image_file)
+
+        # Call OpenAI API for analysis
+        api_response = analyze_image(base64_image)
+
+        # Parse the API response
+        parsed_response = parse_response(api_response)
+
+        print(parsed_response)
+
+        risk_level = get_level_from_risk_score(parsed_response["risk_score"])
+
+        return risk_level
+
+    except Exception as e:
+        raise Exception(f"An error occurred during image analysis: {str(e)}")
