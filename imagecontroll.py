@@ -22,53 +22,87 @@ def get_mysql_connection():
 # 이미지 업로드 API
 @image_routes.route('/upload', methods=['POST'])
 def upload_image():
-    if 'image' not in request.files or 'road_number' not in request.form or 'risk' not in request.form:
-        return jsonify({"error": "Missing required fields"}), 400
+    if 'image' not in request.files:
+        return jsonify({"error": "Missing image file"}), 400
 
+    # 파일 가져오기
     file = request.files['image']
-    road_number = request.form.get('road_number')
-    risk = request.form.get('risk')
-
-    if file.filename == '' or not road_number.isdigit() or not risk.isdigit():
-        return jsonify({"error": "Invalid input"}), 400
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
 
     try:
+        # JSON 데이터 가져오기
+        risk = request.form.get('risk')  # risk 값은 선택
+        report_text = request.form.get('report_text')  # report_text 값은 선택
+
+        # 이미지 데이터를 읽기
         image_data = file.read()
 
         # MySQL에 데이터 삽입
         connection = get_mysql_connection()
         with connection.cursor() as cursor:
-            query = "INSERT INTO image (image_data, road_number, risk) VALUES (%s, %s, %s)"
-            cursor.execute(query, (image_data, int(road_number), int(risk)))
+            # risk와 report_text 처리
+            query = """
+                INSERT INTO image (image_data, risk, report_text)
+                VALUES (%s, %s, %s)
+            """
+            cursor.execute(query, (
+                image_data,
+                int(risk) if risk else None,  # risk 값이 없으면 NULL
+                report_text if report_text else None  # report_text 값이 없으면 NULL
+            ))
             connection.commit()
 
         return jsonify({"message": "Image uploaded successfully"}), 201
 
     except Exception as e:
+        print(e)
         return jsonify({"error": str(e)}), 500
 
-# 이미지 조회 API (ID 기반)
-@image_routes.route('/images/<int:image_id>', methods=['GET'])
-def get_image(image_id):
+# 이미지 데이터만 반환 API
+@image_routes.route('/images/<int:image_id>/data', methods=['GET'])
+def get_image_data(image_id):
     try:
         connection = get_mysql_connection()
         with connection.cursor() as cursor:
-            query = "SELECT image_data FROM image WHERE id = %s"
+            query = "SELECT image_data, report_text FROM image WHERE id = %s"
             cursor.execute(query, (image_id,))
             result = cursor.fetchone()
 
             if not result:
                 return jsonify({"error": "Image not found"}), 404
 
-            # 이미지 데이터를 반환 (Base64 인코딩 또는 바이너리 스트림으로 전송)
             image_data = result['image_data']
+            report_text = result['report_text']
 
-            # 바이너리 데이터를 스트림으로 변환
-            return send_file(
-                io.BytesIO(image_data),
-                mimetype='image/jpeg',  # JPEG 형식
-                as_attachment=False,
-                download_name=f'image_{image_id}.jpg'
-            )
+            # JSON 응답 (report_text 포함)
+            return jsonify({
+                "report_text": report_text,
+                "image_url": f"/images/{image_id}/data"  # 이미지 URL
+            }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 위험도 데이터만 반환 API
+@image_routes.route('/images/<int:image_id>/risk', methods=['GET'])
+def get_image_risk(image_id):
+    try:
+        connection = get_mysql_connection()
+        with connection.cursor() as cursor:
+            query = "SELECT risk FROM image WHERE id = %s"
+            cursor.execute(query, (image_id,))
+            result = cursor.fetchone()
+
+            if not result:
+                return jsonify({"error": "Image not found"}), 404
+
+            risk = result['risk']
+
+            # JSON 응답 (risk만 반환)
+            return jsonify({
+                "risk": risk
+            }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
