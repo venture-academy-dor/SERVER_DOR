@@ -26,7 +26,7 @@ def analyze_image(base64_image):
                 "content": [
                     {
                         "type": "text",
-                        "text": "이 그림을 한글로 설명하고, 미끄러움 정도를 기반으로 위험도 정도를 1~100으로 알려주고 그 이유를 설명해줘. 결과를 JSON 형식으로 제공해줘. JSON의 key 값은 'description', 'risk_score', 'reasons'로 해줘.",
+                        "text": "Analyze the slipperiness of this image and assess the risk level on a scale from 1 to 100 based on its slipperiness. Provide the results in JSON format with the following keys: 'description' (a detailed explanation of the image), 'risk_score' (the slipperiness-based risk score), and 'reasons' (an explanation of why the risk score was assigned).",
                     },
                     {
                         "type": "image_url",
