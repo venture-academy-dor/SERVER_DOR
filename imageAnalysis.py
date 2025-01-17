@@ -64,9 +64,9 @@ def parse_response(api_response):
 def get_level_from_risk_score(risk_score):
     if risk_score >= 75:
         level = 3
-    elif risk_score >= 50:
+    elif risk_score >= 55:
         level = 2
-    elif risk_score >= 25:
+    elif risk_score >= 35:
         level = 1
     else:
         level = 0
