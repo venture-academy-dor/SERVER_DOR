@@ -55,42 +55,13 @@ def upload_image():
         print(e)
         return jsonify({"error": str(e)}), 500
 
-# 이미지 조회 API (ID 기반)
-@image_routes.route('/images/<int:image_id>', methods=['GET'])
-def get_image(image_id):
-    try:
-        connection = get_mysql_connection()
-        with connection.cursor() as cursor:
-            # risk, report_text 추가 조회
-            query = "SELECT image_data, risk, report_text FROM image WHERE id = %s"
-            cursor.execute(query, (image_id,))
-            result = cursor.fetchone()
-
-            if not result:
-                return jsonify({"error": "Image not found"}), 404
-
-            # 응답 데이터 구성
-            image_data = result['image_data']  # 바이너리 이미지 데이터
-            risk = result['risk']
-            report_text = result['report_text']
-
-            # JSON 응답
-            return jsonify({
-                "risk": risk,
-                "report_text": report_text,
-                "image_url": f"/images/{image_id}/data"
-            }), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# 이미지 데이터만 반환 (추가 엔드포인트)
+# 이미지 데이터만 반환 API
 @image_routes.route('/images/<int:image_id>/data', methods=['GET'])
 def get_image_data(image_id):
     try:
         connection = get_mysql_connection()
         with connection.cursor() as cursor:
-            query = "SELECT image_data FROM image WHERE id = %s"
+            query = "SELECT image_data, report_text FROM image WHERE id = %s"
             cursor.execute(query, (image_id,))
             result = cursor.fetchone()
 
@@ -98,13 +69,36 @@ def get_image_data(image_id):
                 return jsonify({"error": "Image not found"}), 404
 
             image_data = result['image_data']
+            report_text = result['report_text']
 
-            # 바이너리 데이터를 스트림으로 반환
-            return send_file(
-                io.BytesIO(image_data),
-                mimetype='image/jpeg',
-                as_attachment=False,
-                download_name=f'image_{image_id}.jpg'
-            )
+            # JSON 응답 (report_text 포함)
+            return jsonify({
+                "report_text": report_text,
+                "image_url": f"/images/{image_id}/data"  # 이미지 URL
+            }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# 위험도 데이터만 반환 API
+@image_routes.route('/images/<int:image_id>/risk', methods=['GET'])
+def get_image_risk(image_id):
+    try:
+        connection = get_mysql_connection()
+        with connection.cursor() as cursor:
+            query = "SELECT risk FROM image WHERE id = %s"
+            cursor.execute(query, (image_id,))
+            result = cursor.fetchone()
+
+            if not result:
+                return jsonify({"error": "Image not found"}), 404
+
+            risk = result['risk']
+
+            # JSON 응답 (risk만 반환)
+            return jsonify({
+                "risk": risk
+            }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
